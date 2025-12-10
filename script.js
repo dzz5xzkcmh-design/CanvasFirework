@@ -4,27 +4,61 @@ const ctx = canvas.getContext('2d');
 /*************** Einstellungen ****************/
 const PARTICLES_PER_EXPLOSION = 80;
 
-const BASE_RADIUS = 6;
+const BASE_RADIUS = 4;
 const RADIUS_JITTER = 2;
 const TRAIL_ALPHA = 0.25;
 
 const EXPLOSION_MIN_SPEED = 2;
-const EXPLOSION_MAX_SPEED = 10;
+const EXPLOSION_MAX_SPEED = 7;
 
 const GRAVITY = 0.08;
 const FRICTION = 0.98;
 
 // Verglühen
 const FADE_RATE = 0.96;
-const FADE_DELAY = 35; // Frames bevor Verblassen startet (≈ 0.4s bei 60fps)
+const FADE_DELAY = 25; // Frames bevor Verblassen startet
 
 let particles = [];
 
-/*************** Canvas Setup ****************/
+// logische Canvas-Größe (in CSS-Pixeln)
+let logicalWidth = 0;
+let logicalHeight = 0;
+
+/*************** Canvas an Bildschirm + DPI anpassen ****************/
 function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  const dpr = window.devicePixelRatio || 1;
+
+  const newWidth = window.innerWidth;
+  const newHeight = window.innerHeight;
+
+  const oldWidth = logicalWidth || newWidth;
+  const oldHeight = logicalHeight || newHeight;
+
+  logicalWidth = newWidth;
+  logicalHeight = newHeight;
+
+  // CSS-Größe (sichtbar im Browser)
+  canvas.style.width = newWidth + 'px';
+  canvas.style.height = newHeight + 'px';
+
+  // interne Auflösung (Pixel-Buffer, hochskaliert für Retina)
+  canvas.width = newWidth * dpr;
+  canvas.height = newHeight * dpr;
+
+  // Koordinatensystem so skalieren, dass 1 Einheit = 1 CSS-Pixel bleibt
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // vorhandene Partikel proportional mitskalieren,
+  // damit sie bei einem Resize nicht "springen"
+  const scaleX = newWidth / oldWidth;
+  const scaleY = newHeight / oldHeight;
+
+  particles.forEach(p => {
+    p.x *= scaleX;
+    p.y *= scaleY;
+  });
 }
+
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
@@ -51,8 +85,7 @@ class ExplosionParticle {
 
     this.color = randomFireworkColor();
     this.alpha = 1;
-
-    this.life = 0;
+    this.life = 0; // Frames seit Erzeugung
   }
 
   update() {
@@ -66,7 +99,7 @@ class ExplosionParticle {
     this.x += this.vx;
     this.y += this.vy;
 
-    // ERST NACH DEM FALLEN langsam verblassen
+    // erst nach kurzer Zeit langsam verblassen
     if (this.life > FADE_DELAY) {
       this.alpha *= FADE_RATE;
     }
@@ -101,19 +134,20 @@ function spawnExplosion(x, y) {
 
 /*************** Klick ****************/
 canvas.addEventListener('mousedown', (e) => {
-  if (e.button !== 0) return;
+  if (e.button !== 0) return; // nur linke Maustaste
 
   const rect = canvas.getBoundingClientRect();
-  spawnExplosion(
-    e.clientX - rect.left,
-    e.clientY - rect.top
-  );
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  spawnExplosion(x, y);
 });
 
 /*************** Loop ****************/
 function animate() {
+  // hier mit logischer Breite/Höhe arbeiten (CSS-Pixel)
   ctx.fillStyle = `rgba(0, 0, 0, ${TRAIL_ALPHA})`;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillRect(0, 0, logicalWidth, logicalHeight);
 
   particles.forEach(p => {
     p.update();
