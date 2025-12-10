@@ -5,10 +5,25 @@ html, body {
     height: 100%;
     background: black;
     overflow: hidden;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
   
+  /* Canvas füllt den ganzen Bildschirm */
   canvas {
     display: block;
     width: 100vw;
     height: 100vh;
   }
+  
+  /* Optional: Titel unten rechts, wie bei dir vorher */
+  #title-container {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    padding: 0.5em 0.75em;
+    font-size: 1.2em;
+    color: #ffffff;
+    pointer-events: none; /* Klicks gehen durch zum Canvas */
+    opacity: 0.4;
+  }
+  
