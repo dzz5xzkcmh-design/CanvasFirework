@@ -1,30 +1,21 @@
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
-/*************** Einstellungen ****************/
 const PARTICLES_PER_EXPLOSION = 80;
-
 const BASE_RADIUS = 4;
 const RADIUS_JITTER = 2;
 const TRAIL_ALPHA = 0.25;
-
 const EXPLOSION_MIN_SPEED = 2;
 const EXPLOSION_MAX_SPEED = 7;
-
 const GRAVITY = 0.08;
 const FRICTION = 0.98;
-
-// Verglühen
 const FADE_RATE = 0.96;
-const FADE_DELAY = 25; // Frames bevor Verblassen startet
+const FADE_DELAY = 25;
 
 let particles = [];
-
-// logische Canvas-Größe (in CSS-Pixeln)
 let logicalWidth = 0;
 let logicalHeight = 0;
 
-/*************** Canvas an Bildschirm + DPI anpassen ****************/
 function resizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
 
@@ -37,19 +28,14 @@ function resizeCanvas() {
   logicalWidth = newWidth;
   logicalHeight = newHeight;
 
-  // CSS-Größe (sichtbar im Browser)
   canvas.style.width = newWidth + 'px';
   canvas.style.height = newHeight + 'px';
 
-  // interne Auflösung (Pixel-Buffer, hochskaliert für Retina)
   canvas.width = newWidth * dpr;
   canvas.height = newHeight * dpr;
 
-  // Koordinatensystem so skalieren, dass 1 Einheit = 1 CSS-Pixel bleibt
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  // vorhandene Partikel proportional mitskalieren,
-  // damit sie bei einem Resize nicht "springen"
   const scaleX = newWidth / oldWidth;
   const scaleY = newHeight / oldHeight;
 
@@ -62,36 +48,32 @@ function resizeCanvas() {
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-/*************** Farbe ****************/
 function randomFireworkColor() {
   const hue = Math.floor(Math.random() * 360);
   return `hsl(${hue}, 80%, 60%)`;
 }
 
-/*************** Partikel ****************/
 class ExplosionParticle {
   constructor(x, y) {
     this.x = x;
     this.y = y;
 
-    // Explosion nach außen + leichter Auftrieb
     const angle = Math.random() * Math.PI * 2;
     const speed =
       EXPLOSION_MIN_SPEED +
       Math.random() * (EXPLOSION_MAX_SPEED - EXPLOSION_MIN_SPEED);
 
     this.vx = Math.cos(angle) * speed;
-    this.vy = Math.sin(angle) * speed - Math.random() * 2; // leicht nach oben
+    this.vy = Math.sin(angle) * speed - Math.random() * 2;
 
     this.color = randomFireworkColor();
     this.alpha = 1;
-    this.life = 0; // Frames seit Erzeugung
+    this.life = 0;
   }
 
   update() {
     this.life++;
 
-    // Physik
     this.vy += GRAVITY;
     this.vx *= FRICTION;
     this.vy *= FRICTION;
@@ -99,7 +81,6 @@ class ExplosionParticle {
     this.x += this.vx;
     this.y += this.vy;
 
-    // erst nach kurzer Zeit langsam verblassen
     if (this.life > FADE_DELAY) {
       this.alpha *= FADE_RATE;
     }
@@ -125,16 +106,14 @@ class ExplosionParticle {
   }
 }
 
-/*************** Explosion erzeugen **************/
 function spawnExplosion(x, y) {
   for (let i = 0; i < PARTICLES_PER_EXPLOSION; i++) {
     particles.push(new ExplosionParticle(x, y));
   }
 }
 
-/*************** Klick ****************/
 canvas.addEventListener('mousedown', (e) => {
-  if (e.button !== 0) return; // nur linke Maustaste
+  if (e.button !== 0) return;
 
   const rect = canvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
@@ -143,9 +122,7 @@ canvas.addEventListener('mousedown', (e) => {
   spawnExplosion(x, y);
 });
 
-/*************** Loop ****************/
 function animate() {
-  // hier mit logischer Breite/Höhe arbeiten (CSS-Pixel)
   ctx.fillStyle = `rgba(0, 0, 0, ${TRAIL_ALPHA})`;
   ctx.fillRect(0, 0, logicalWidth, logicalHeight);
 
